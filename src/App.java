@@ -1,8 +1,7 @@
 import java.util.concurrent.TimeUnit;
-
 import desmoj.core.simulator.*;
-import models.Hospital;
 import desmoj.core.exception.*;
+import models.Hospital;
 
 /**
  * Classe que representa a simulaçao de um modelo hospitalar, realizando a execuçao
@@ -18,7 +17,7 @@ import desmoj.core.exception.*;
  */
 public class App {
     // Variáveis globais
-    private static final int SIMULATION_TIME = 600;         // Tempo de simulaçao definido em minutos
+    private static final int SIMULATION_TIME = 500;         // Tempo de simulaçao definido em minutos
     private static final int NUM_DOCTORS = 5;               // Define o numero de medicos
     private static final int NUM_OFFICES = 5;               // Define o numero de consultorios
     private static final int NUM_DOCTOR_PER_OFFICE = 5;     // Define o numero de medicos por consultorio
@@ -36,7 +35,7 @@ public class App {
         if (args.length != 0) System.out.println("Parâmetros de linha de comando nao sao necessários.");
         
         // Criaçao da instância do hospital com parâmetros especificos
-        Hospital hospital = new Hospital(null, "Modelo Hospitalar", true, true, SIMULATION_TIME, NUM_OFFICES, NUM_MAX_QUEUE_SIZE);
+        Hospital hospital = new Hospital(null, "Modelo Hospitalar", true, true, SIMULATION_TIME, NUM_OFFICES, NUM_MAX_QUEUE_SIZE, 0, 0);
 
         // Criaçao do experimento para a simulaçao das filas
         Experiment experiment = new Experiment("Filas");

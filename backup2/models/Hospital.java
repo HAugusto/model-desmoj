@@ -4,7 +4,6 @@ import desmoj.core.statistic.*;
 import desmoj.core.dist.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -34,8 +33,8 @@ public class Hospital extends Model {
     private List<Office> listOffice;                // Lista de consultórios
     private List<Receptionist> listReceptionist;    // Lista de recepcionistas
     public Queue<Patient> queuePatient;            // Fila de pacientes à espera
-    private final int iMaxQueueSize;                 // Tamanho máximo da fila de pacientes
-    
+    private final int maxQueueSize;                 // Tamanho máximo da fila de pacientes
+
     // Definição das variáveis estatísticas
     public Count countPatientsServed;               // Contador de pacientes atendidos
     public Count countTotalTimestamp;               // Contador do tempo total de simulação
@@ -45,10 +44,6 @@ public class Hospital extends Model {
     // Definição das distribuições de tempo
     private ContDistExponential distTimeArrival;    // Distribuição exponencial para o tempo de chegada dos pacientes
     private ContDistNormal distTimeService;         // Distribuição normal para o tempo de serviço (atendimento)
-
-    // Definição da triagem
-    private double dAverageTimeServiceAttended;     // Tempo médio de serviço no atendimento
-    private double dAverageTimeServiceEnding;       // Tempo médio de serviço na finalização
 
     // Definição para relatórios
     private boolean bShowInReport;                  // Indica se deve mostrar relatórios
@@ -65,9 +60,9 @@ public class Hospital extends Model {
      * @param showInTrace       Indica se o hospital deve gerar rastreamento de eventos.
      * @param simulationTime    Tempo total de simulação.
      * @param numOffices        Número de consultórios no hospital.
-     * @param iMaxQueueSize      Tamanho máximo da fila de pacientes.
+     * @param maxQueueSize      Tamanho máximo da fila de pacientes.
      */
-    public Hospital(Model owner, String name, boolean showInReport, boolean showInTrace, double simulationTime, int numOffices, int iMaxQueueSize, double avgTimeServiceAttended, double avgTimeServiceEnding){
+    public Hospital(Model owner, String name, boolean showInReport, boolean showInTrace, double simulationTime, int numOffices, int maxQueueSize){
         super(owner, name, showInReport, showInTrace);
 
         // Inicializa os identificadores do hospital
@@ -77,17 +72,14 @@ public class Hospital extends Model {
         this.dSimulationTime = (simulationTime >= 0) ? simulationTime : 600;
         this.bShowInReport = showInReport;
         this.bShowInTrace = showInTrace;
-        
+
         // Inicializa as configurações dos consultórios e recepcionistas
         this.listOffice = new ArrayList<>();
         this.listReceptionist = new ArrayList<>();
         this.iNumOffices = (numOffices >= 0) ? numOffices : 5;
         this.iNumReceptionists = 1;
 
-        this.dAverageTimeServiceAttended = avgTimeServiceAttended;
-        this.dAverageTimeServiceEnding = avgTimeServiceEnding;
-
-        this.iMaxQueueSize = (iMaxQueueSize >= 0) ? iMaxQueueSize : 5;
+        this.maxQueueSize = (maxQueueSize >= 0) ? maxQueueSize : 5;
     }
     
     @Override
@@ -109,7 +101,7 @@ public class Hospital extends Model {
         // Cria os recepcionistas
         for(int i = 0; i < iNumReceptionists; i++) {
             try{
-                Receptionist receptionist = new Receptionist(this, "Recepcionista", true, true, true, 5);
+                Receptionist receptionist = new Receptionist(this, "Recepcionista", true);
                 listReceptionist.add(receptionist);
             } catch(Exception exception){
                 exception.printStackTrace();
@@ -119,7 +111,7 @@ public class Hospital extends Model {
         // Cria os consultórios
         for(int i = 0; i < iNumOffices; i++) {
             try{
-                Office office = new Office(this, true, i, iMaxQueueSize);
+                Office office = new Office(this, true, i, maxQueueSize);
                 listOffice.add(office);
 
                 // Inicializa contadores específicos para os consultórios
@@ -178,7 +170,7 @@ public class Hospital extends Model {
      * @return Tempo de chegada de um paciente.
      */
     public double getTimeArrival(){
-        // System.out.println(distTimeArrival.sample());
+        System.out.println(distTimeArrival.sample());
         return distTimeArrival.sample();
     }
 
@@ -275,66 +267,8 @@ public class Hospital extends Model {
      * 
      * @return A fila de pacientes.
      */
-    public int getiMaxQueueSize() {
-        return iMaxQueueSize;
-    }
-
-    public void insertQueue(Patient patient){
-        if(patient == null) throw new IllegalArgumentException("Os parâmetros não podem ser nulos");
-        queuePatient.insert(patient);
-        sendTraceNote("Paciente <" + patient.getId() + "> foi inserido na fila do hospital");
-        System.out.println("Fila Única | Recepcionista: " + queuePatient.size());
-    }
-
-    public void startReception(){
-        Receptionist receptionist = getAvailableReceptionist();
-        if(receptionist == null) {
-            sendTraceNote("Não há recepcionistas disponíveis no momento...");
-            return;
-        } else if(!queuePatient.isEmpty()){
-            Patient patient = queuePatient.first();
-            queuePatient.remove(patient);
-
-            receptionist.setPatient(patient);
-            receptionist.toggleStatus();
-
-            ReceptionStartEvent event = new ReceptionStartEvent(getModel(), "Início de triagem", bShowInTrace, receptionist);
-            event.schedule(new TimeSpan(dAverageTimeServiceAttended, TimeUnit.MINUTES));
-
-            sendTraceNote("Paciente <" + patient.getId() + "> sendo atendido na recepção.");
-        } else {
-            sendTraceNote("A fila está vazia.");
-            System.out.println("A fila está vazia.");
-        }
-    }
-
-    public void assignOffice(Patient patient){
-        if(patient == null) throw new IllegalArgumentException("Os parâmetros não podem ser nulos");
-        // Optional<Office> availableOffice = listOffice.stream().filter(Office::getIsAvailable).findFirst();
-        Office office = getOfficeWithShortestQueue();
-
-        if(office == null) {
-            sendTraceNote("Não há consultórios livres.");
-            return;
-        } else {
-            office.getQueueWaitingPatients().insert(patient);
-            sendTraceNote("Paciente <" + patient.getId() + "> adicionado a fila do Consultório " + office.getIndex());
-        }
-        
-        // Se a recepcionista estiver disponível, agenda o atendimento do paciente
-        if(!office.getQueueWaitingPatients().isEmpty()){
-            office.startConsultation(office.getQueueWaitingPatients().first(), office);
-
-            // Emite nota de rastreamento sobre o atendimento imediato
-            sendTraceNote("Paciente sendo atendido imediatamente | Fila do Consultório: " + office.getQueueWaitingPatients().size());
-            System.out.println("Paciente sendo atendido imediatamente | Fila do Consultório: " + office.getQueueWaitingPatients().size());
-        } else if(office.getQueueWaitingPatients().size() > 5) {
-            // Se a fila estiver cheia, o paciente é rejeitado
-            sendTraceNote("Fila do Consultório cheia! Paciente rejeitado.");
-            System.out.println("Fila do Consultório cheia! Paciente rejeitado.");
-
-            // Liberar o paciente
-        }
+    public int getMaxQueueSize() {
+        return maxQueueSize;
     }
 
     // Função para atender paciente através de um recepcionista
@@ -344,45 +278,43 @@ public class Hospital extends Model {
      * @param patient O paciente a ser atendido.
      * @param receptionist O recepcionista que atenderá o paciente.
      */
-    // public void attendPatient(Patient patient) {
-    //     // 1. Verifica se há espaço na fila (5 pacientes)
-    //     // 2. Se há espaço na fila, o paciente entra na fila
-    //     // 3. Se a fila contém somente um paciente, ele vai para atendimento direto
-    //     // 4. Se a fila for maior que 0, atende o primeiro paciente
-    //     // 5. Se a fila estiver vazia, a recepcionista aguarda a chegada de um paciente
-    //     if(patient == null) throw new IllegalArgumentException("Os parâmetros não podem ser nulos");
-        
-    //     Receptionist receptionist = listReceptionist.getFirst();
+    public void attendPatient(Patient patient, Receptionist receptionist) {
+        // 1. Verifica se há espaço na fila (5 pacientes)
+        // 2. Se há espaço na fila, o paciente entra na fila
+        // 3. Se a fila contém somente um paciente, ele vai para atendimento direto
+        // 4. Se a fila for maior que 0, atende o primeiro paciente
+        // 5. Se a fila estiver vazia, a recepcionista aguarda a chegada de um paciente
+        if(receptionist == null || patient == null) throw new IllegalArgumentException("Os parâmetros não podem ser nulos");
+        receptionist.getWaitingQueue().insert(patient);
 
-    //     if(receptionist.getWaitingQueue().size() < 5) receptionist.getWaitingQueue().insert(patient);
-    //     else ;
+        if(receptionist.getWaitingQueue().size() < 5) receptionist.getWaitingQueue().insert(patient);
+        else ;
 
-    //     // Se a recepcionista estiver disponível, agenda o atendimento do paciente
-    //     if(receptionist.getWaitingQueue().size() > 0){
-    //         System.out.println(receptionist.getIsAvailable());
+        // Se a recepcionista estiver disponível, agenda o atendimento do paciente
+        if(receptionist.getWaitingQueue().size() > 0){
+            System.out.println(receptionist.getIsAvailable());
 
-    //         ReceptionStartEvent event = new ReceptionStartEvent(getModel(), "Recepcionista | " + receptionist.getId(), bShowInTrace, receptionist);
-    //         event.schedule(new TimeSpan(15, TimeUnit.MINUTES));
+            // ReceptionStartEvent event = new ReceptionStartEvent(getModel(), "Recepcionista | " + receptionist.getId(), bShowInTrace, receptionist);
+            // event.schedule(new TimeSpan(15, TimeUnit.MINUTES));
 
-    //         sendTraceNote("Paciente sendo atendido imediatamente | Fila da Recepção: " + receptionist.getWaitingQueue().size());
-    //         // Emite nota de rastreamento sobre o atendimento imediato
-    //     } else if(receptionist.getWaitingQueue().size() > 5) {
-    //         // Se a fila estiver cheia, o paciente é rejeitado
-    //         sendTraceNote("Fila da Recepcionista cheia! Paciente rejeitadoeje.");
-    //         System.out.println("Fila da Recepcionista cheia! Paciente ritado.");
+            // Emite nota de rastreamento sobre o atendimento imediato
+            sendTraceNote("Paciente sendo atendido imediatamente | Fila da Recepção: " + receptionist.getWaitingQueue().size());
+        } else if(receptionist.getWaitingQueue().size() > 5) {
+            // Se a fila estiver cheia, o paciente é rejeitado
+            sendTraceNote("Fila da Recepcionista cheia! Paciente rejeitadoeje.");
+            System.out.println("Fila da Recepcionista cheia! Paciente ritado.");
 
-    //         // Destruir o paciente
-    //     }
-    // }
+            // Destruir o paciente
+        }
+    }
 
-    // public void releaseReceptionist(Receptionist receptionist){
-    //     // Verifica se uma recepcionista foi selecionada
-    //     if(receptionist == null) throw new IllegalStateException("A recepcionista nao pode ser nula.");
+    public void releaseReceptionist(Receptionist receptionist){
+        // Verifica se uma recepcionista foi selecionada
+        if(receptionist == null) throw new IllegalStateException("A recepcionista nao pode ser nula.");
 
-    //     receptionist.releasePatient();
-    //     // ReceptionEndEvent event = new ReceptionEndEvent(getModel(), "Fim da Triagem", true, receptionist);
-    //     // event.schedule(new TimeSpan(5, TimeUnit.MINUTES)); // Tempo de atendimento (tempo de serviço do recepcionista)
-    // }
+        ReceptionEndEvent event = new ReceptionEndEvent(getModel(), "Fim da Triagem", true, receptionist);
+        event.schedule(new TimeSpan(5, TimeUnit.MINUTES)); // Tempo de atendimento (tempo de serviço do recepcionista)
+    }
 
     // public void attendPatientOffice(Patient patient, Office office) {
     //     // Verifica se o consultório foi encontrado
@@ -451,10 +383,10 @@ public class Hospital extends Model {
             Queue<Patient> queue = office.getQueueWaitingPatients(); // Obtem a fila do consultorio
             int currentQueueSize = queue.size(); // Obtem o tamanho da fila
 
-            System.out.println("Fila | Consultorio " + office.getIndex() + ": " + office.getQueueWaitingPatients().size());
+            // System.out.println("Fila | Consultorio " + office.getIndex() + ": " + office.getQueueWaitingPatients().size());
 
             // Verifica se este consultorio tem a menor fila ate o momento
-            if (currentQueueSize < shortestQueueSize && currentQueueSize < iMaxQueueSize) {
+            if (currentQueueSize < shortestQueueSize) {
                 shortestQueueSize = currentQueueSize;
                 selectedOffice = office;
             }

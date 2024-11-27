@@ -2,12 +2,9 @@ package models;
 
 import desmoj.core.simulator.*;
 import desmoj.core.statistic.*;
-import events.PatientStartServiceEvent;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Classe que representa um consultório em um sistema de simulação de atendimento hospitalar,
@@ -24,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 public class Office extends Entity {
 
     private final Hospital model = (Hospital) getModel();               // Referência ao modelo principal
-    private final String uuid;                                          // Identificador único do consultório
+    private final static String uuid = UUID.randomUUID().toString();    // Identificador único do consultório
     private final int iIndex;                                           // Índice do consultório
 
     private final int maxPatientQueueSize;                              // Capacidade máxima da fila de pacientes
@@ -47,8 +44,7 @@ public class Office extends Entity {
      * @param maxQueueSize       Capacidade máxima da fila de pacientes.
      */
     public Office(Model owner, boolean showInTrace, int index, int maxQueueSize) {
-        super(owner, "Consultório", showInTrace);
-        this.uuid = UUID.randomUUID().toString();
+        super(owner, uuid, showInTrace);
 
         // Inicializa identificadores e configurações do consultório
         this.iIndex = index + 1;
@@ -207,32 +203,6 @@ public class Office extends Entity {
     }
 
     // Métodos internos
-    /**
-     * Inicia o atendimento de um paciente no consultório.
-     *
-     * @param patient Paciente a ser atendido.
-     */
-    public void startConsultation(Patient patient, Office office) {
-        if (!bIsAvailable) throw new IllegalStateException("Consultório está ocupado e não pode iniciar uma nova consulta.");
-        if (patient == null || office == null) throw new IllegalArgumentException("Os parâmetros de entrada não podem ser nulos.");
-
-        office.removePatientOnQueue();
-        office.setPatient(patient);
-        office.toggleStatus();
-        
-        // Registra o início do atendimento no rastreamento
-        model.sendTraceNote("Consultório ID: " + this.getId() + " iniciou atendimento do paciente ID: " + patient.getId());
-        System.out.println("Consultório ID: " + this.getId() + " iniciou atendimento do paciente ID: " + patient.getId());
-        
-        // Atualiza o contador de tempo ocupado (tempo de serviço do consultório)
-        this.countOccupiedTime.update(1);
-
-        // Agendar evento de fim de atendimento
-        PatientStartServiceEvent event = new PatientStartServiceEvent(model, "Fim do Atendimento", true);
-        double consultationTime = model.getTimeService(); // Tempo de consulta gerado aleatoriamente
-        event.schedule(patient, office, new TimeSpan(consultationTime, TimeUnit.MINUTES));
-    }
-
     /**
      * Adiciona um paciente à fila de espera.
      * 

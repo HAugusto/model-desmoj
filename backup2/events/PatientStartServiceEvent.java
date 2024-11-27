@@ -20,11 +20,12 @@ public class PatientStartServiceEvent extends EventOf2Entities<Patient, Office> 
 
         System.out.println("Paciente <" + patient.getId() + "> sendo atendido | Início: " + patient.getServiceStartTime());
         // Atribui o tempo de término de serviço ao paciente
-		// office.toggleStatus();
-        // office.setPatient(patient);
+		office.toggleStatus();
+        office.setPatient(patient);
+
         
         // Atualiza o tempo de atendimento do paciente
-        model.tallyAverageWaitingTime.update(patient.getServiceStartTime().getTimeAsDouble() - patient.getArrivalTime().getTimeAsDouble());
+        model.tallyAverageWaitingTime.update(model.presentTime().getTimeAsDouble() - patient.getArrivalTime().getTimeAsDouble());
         
         // Atualiza a contagem de pacientes atendidos
         model.countPatientsServed.update();
@@ -37,9 +38,8 @@ public class PatientStartServiceEvent extends EventOf2Entities<Patient, Office> 
 		model.countTotalTimestamp.update((long) model.getTimeService());
         
         // Cria o evento de fim de atendimento (agendar o proximo evento)
-        PatientEndServiceEvent event = new PatientEndServiceEvent(model, "Fim do Atendimento", true);
-        event.schedule(patient, office, new TimeSpan(model.getTimeService())); // Defina o tempo de atendimento aqui, se necessário
-
+        PatientStartServiceEvent endServiceEvent = new PatientStartServiceEvent(model, "Fim do Atendimento", true);
+        endServiceEvent.schedule(patient, office, new TimeSpan(model.getTimeService())); // Defina o tempo de atendimento aqui, se necessário
         // Chama o metodo do consultorio para iniciar o atendimento ao paciente
         // model.freePatientOffice(patient, office);
     }

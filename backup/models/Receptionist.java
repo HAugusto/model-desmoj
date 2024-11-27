@@ -132,6 +132,7 @@ public class Receptionist extends Entity {
      */
     public void setPatient(Patient patient) {
         this.ptrPatient = patient;    // Se a recepcionista estiver disponível, ela recebe o paciente
+        toggleStatus();
     }
 
     // Métodos internos
@@ -183,8 +184,9 @@ public class Receptionist extends Entity {
      */
     public void releasePatient() {
         if (bIsAvailable) throw new IllegalStateException("A recepcionista já está disponível.");
+        
         ReceptionEndEvent event = new ReceptionEndEvent(getModel(), "Fim da Triagem", bShowInTrace, this);
-        event.schedule(new TimeSpan(0, TimeUnit.MINUTES)); // Tempo de atendimento (tempo de serviço do recepcionista)
+        event.schedule(new TimeSpan(5, TimeUnit.MINUTES)); // Tempo de atendimento (tempo de serviço do recepcionista)
     }
 
     /**

@@ -40,7 +40,7 @@ public class Market extends Model{
     public void init(){
         this.countClients = new Count(this, "Clientes Atendidos: ", true, false);
         this.countTotalTimestamp = new Count(this, "Tempo Total: ", true, false);
-        this.averageClientTime = new Tally(this, "Tempo Medio por Cliente: ", true, false);
+        this.averageClientTime = new Tally(this, "Tempo Médio por Cliente: ", true, false);
         this.throughputMarket = new Tally(this, "Throughput do Mercado: ", true, false);
     
         queueClients = new Queue<Client>(this, "Clientes na Fila: ", true, true);
@@ -63,9 +63,9 @@ public class Market extends Model{
             cashier.totalOccupiedTime = new Count(this, "Caixa " + (cashier.getIndex() + 1) + " - Tempo Ocupado: ", true, false);
         }
         
-        distributionClientArrival = new ContDistUniform(this, "Distribuiçao do tempo entre chegadas sucessivas de clientes", minClientArrival - 1, maxClientArrival + 1, true, true);
+        distributionClientArrival = new ContDistUniform(this, "Distribuição do tempo entre chegadas sucessivas de clientes", minClientArrival - 1, maxClientArrival + 1, true, true);
+        distributionServiceTime = new ContDistUniform(this, "Distribuição do tempo de atendimento dos caixas", minTimeService - 1, maxTimeService + 1, true, true);
         distributionClientArrival.setNonNegative(true);
-        distributionServiceTime = new ContDistUniform(this, "Distribuiçao do tempo de atendimento dos caixas", minTimeService - 1, maxTimeService + 1, true, true);
         distributionServiceTime.setNonNegative(true);
     }
 

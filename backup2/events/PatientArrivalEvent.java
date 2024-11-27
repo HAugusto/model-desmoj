@@ -29,9 +29,6 @@ public class PatientArrivalEvent extends ExternalEvent {
     @Override
     public void eventRoutine() {
         handlePatientArrival();
-        
-        // Agendamento do próximo evento de chegada de paciente
-        scheduleNextPatientArrivalEvent();
     }
 
     /**
@@ -41,29 +38,20 @@ public class PatientArrivalEvent extends ExternalEvent {
         // Criação do paciente e atribuição de tempo de chegada
         Patient patient = new Patient(model, "Paciente", true, false);
         patient.setArrivalTime(model.presentTime()); // Atribui o tempo de chegada ao paciente
-
+        
         // Registra a chegada do paciente no hospital
         model.sendTraceNote("ID: " + patient.getId() + " chegou ao hospital.");
-        System.out.println("\nPaciente <" + patient.getId() + "> chegou ao hospital.");
         
+        // Verifica se há recepcionista disponível para atendimento
+        Receptionist receptionist = model.getListReceptionist().getFirst();
+
         // Se houver recepcionista disponível, tenta encaminhar o paciente para a fila da recepção
-        model.insertQueue(patient);
-        model.startReception();
-    }
-
-    /**
-     * Agendamento do próximo evento de chegada de paciente.
-     * 
-     * O próximo evento será agendado de acordo com o tempo configurado no modelo.
-     */
-    private void scheduleNextPatientArrivalEvent(){
-        // Cria o próximo evento de chegada de paciente
-        PatientArrivalEvent nextEvent = new PatientArrivalEvent(model, "Chegada de Paciente", true);
+        model.attendPatient(patient, receptionist);
         
-        // Agendamento do próximo evento com base no tempo de chegada configurado no hospital
-        nextEvent.schedule(new TimeSpan(model.getTimeArrival(), TimeUnit.MINUTES));
+        System.out.println("Fila | Tamanho da fila: " + receptionist.getWaitingQueue().size() + " pacientes.");
 
-        // Próximo evento de chegada de paciente escalonado
-        model.sendTraceNote("Próximo evento de triagem agendado.");
+        // Agendamento do próximo evento de chegada de paciente
+        PatientArrivalEvent nextEvent = new PatientArrivalEvent(model, "Chegada de Paciente", true);
+        nextEvent.schedule(new TimeSpan(model.getTimeArrival(), TimeUnit.MINUTES)); // Agendamento do próximo evento de chegada
     }
 }

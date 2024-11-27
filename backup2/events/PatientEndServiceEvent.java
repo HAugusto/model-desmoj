@@ -41,17 +41,18 @@ public class PatientEndServiceEvent extends EventOf2Entities<Patient, Office> {
             System.out.println(patient.getServiceEndTime());
 
             office.toggleStatus();  // Consultorio agora está disponivel
+            office.removePatientOnQueue();
             office.updateCountPatientsAttended();
 
             // Pega o proximo paciente na fila do consultorio
-            // Patient nextPatient = office.getQueueWaitingPatients().first();
+            Patient nextPatient = office.getQueueWaitingPatients().first();
             
-            // if(!office.getIsQueueEmpty()){
-            // // Agendamento do evento de inicio de atendimento para o proximo paciente
-            //     PatientStartServiceEvent startServiceEvent = new PatientStartServiceEvent(getModel(), "Inicio de Atendimento - Consultorio", true);
-            //     startServiceEvent.schedule(nextPatient, office, new TimeSpan(0));  // Agendamento imediato (0 delay)
-            //     sendTraceNote("Paciente " + nextPatient.getId() + " agora será atendido no consultorio " + office.getId());
-            // }
+            if(!office.getIsQueueEmpty()){
+            // Agendamento do evento de inicio de atendimento para o proximo paciente
+                PatientStartServiceEvent startServiceEvent = new PatientStartServiceEvent(getModel(), "Inicio de Atendimento - Consultorio", true);
+                startServiceEvent.schedule(nextPatient, office, new TimeSpan(0));  // Agendamento imediato (0 delay)
+                sendTraceNote("Paciente " + nextPatient.getId() + " agora será atendido no consultorio " + office.getId());
+            }
         } else {
             sendTraceNote("Consultorio " + office.getId() + " nao tem pacientes aguardando.");
         }

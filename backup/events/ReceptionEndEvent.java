@@ -4,7 +4,6 @@ import java.util.concurrent.TimeUnit;
 
 import desmoj.core.simulator.*;
 import models.Hospital;
-import models.Office;
 import models.Patient;
 import models.Receptionist;
 
@@ -32,25 +31,20 @@ public class ReceptionEndEvent extends ExternalEvent {
 
     @Override
     public void eventRoutine() {
+        // System.out.println(receptionist.getPatient().getId());
+        // System.out.println(receptionist.getIsAvailable());
+        
         // Finaliza o atendimento do paciente e registra a ação
         Patient patient = receptionist.getPatient();  // Obtemos o paciente que está sendo atendido
-        
-        if(patient == null) return;
-        
         model.sendTraceNote("Fim do atendimento do paciente ID: " + patient.getId());
         System.out.println("Fim do atendimento: <" + patient.getId() + "> | Tempo: " + model.presentTime().getTimeAsDouble());
         
         receptionist.setPatient(null);
         receptionist.updateCountPatientsAttended();  // Incrementa o contador de pacientes atendidos
         receptionist.toggleStatus();
-        // scheduleNextEndReceptionEvent();
-
-        // model.assignOffice(patient);
-        model.startReception();
         
-        if(!model.getQueuePatient().isEmpty()) model.startReception();
-        // else model.sendTraceNote("Recepcionista ID: " + receptionist.getId() + " está ocioso. Fila vazia.");
         // Libera o recepcionista e altera seu status para disponível
+        // scheduleNextEndReceptionEvent();
     }
 
     /**

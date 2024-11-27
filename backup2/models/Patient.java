@@ -14,7 +14,7 @@ import java.util.UUID;
  * @since 03/11/2024
  */
 public class Patient extends Entity {
-    private final String uuid;                                          // Identificador unico do paciente
+    private final static String uuid = UUID.randomUUID().toString();    // Identificador unico do paciente
     private TimeInstant instantArrivalTime;                             // Indica o tempo de chegada do paciente ao hospital
     private TimeInstant instantStartTime;                               // Indica o tempo de inicio de atendimento
     private TimeInstant instantEndTime;                                 // Indica o tempo de fim de atendimento
@@ -32,7 +32,6 @@ public class Patient extends Entity {
      */
     public Patient(Model owner, String name, boolean showInTrace, boolean isUrgent) {
         super(owner, name, showInTrace);
-        this.uuid = UUID.randomUUID().toString();
 
         // Incializa as variáveis de tempo como 'null'
         this.instantArrivalTime = null;

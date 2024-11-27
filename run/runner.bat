@@ -1,1 +1,1 @@
-javac -cp lib/desmoj-2-5-1e-bin.jar:. src/*.java
+javac -cp lib/desmoj-2.5.1e-bin.jar; src/*.java

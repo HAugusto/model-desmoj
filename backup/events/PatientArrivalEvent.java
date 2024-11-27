@@ -41,14 +41,13 @@ public class PatientArrivalEvent extends ExternalEvent {
         // Criação do paciente e atribuição de tempo de chegada
         Patient patient = new Patient(model, "Paciente", true, false);
         patient.setArrivalTime(model.presentTime()); // Atribui o tempo de chegada ao paciente
-
+        
         // Registra a chegada do paciente no hospital
         model.sendTraceNote("ID: " + patient.getId() + " chegou ao hospital.");
-        System.out.println("\nPaciente <" + patient.getId() + "> chegou ao hospital.");
+        System.out.println("Paciente <" + patient.getId() + "> chegou ao hospital.");
         
         // Se houver recepcionista disponível, tenta encaminhar o paciente para a fila da recepção
-        model.insertQueue(patient);
-        model.startReception();
+        model.startScreening(patient);
     }
 
     /**

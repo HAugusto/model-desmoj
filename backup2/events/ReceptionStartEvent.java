@@ -31,27 +31,32 @@ public class ReceptionStartEvent extends ExternalEvent {
 
     @Override
     public void eventRoutine() {
-        System.out.println("Recepcionista ID <" + receptionist.getId() + "> iniciou atendimento | Paciente <" + receptionist.getPatient().getId() + ">: " + receptionist.getIsAvailable());
-        
-        // Recebe o primeiro, ou o próximo paciente da fila, atribuindo-o a recepcionista
-        // Patient patient = receptionist.getWaitingQueue().first();
-        // receptionist.getWaitingQueue().remove(patient); // Remove o paciente da fila
-        // receptionist.setPatient(patient);
-        
-        // Simula o tempo de atendimento para a triagem
-        model.sendTraceNote("Triagem iniciada para o paciente ID: " + receptionist.getPatient().getId());
-        receptionist.releasePatient();
+        // Verifica se há pacientes na fila da recepção
+        System.out.println("Status atual: " + receptionist.getPatient());
+        if (!receptionist.getWaitingQueue().isEmpty() && receptionist.getIsAvailable()) {
+            System.out.println("Estou aqui");
+            // Recebe o primeiro, ou o próximo paciente da fila, atribuindo-o a recepcionista
+            Patient patient = receptionist.getWaitingQueue().first();
+            receptionist.getWaitingQueue().remove(patient); // Remove o paciente da fila
+            receptionist.setPatient(patient);
 
-        // scheduleNextReceptionEvent();
+            // System.out.println("Início de atendimento: " + receptionist.getIsAvailable());
 
-        // Agendamos o fim do atendimento após o tempo de serviço do recepcionista
-        // ReceptionEndEvent event = new ReceptionEndEvent(model, "Fim da Triagem", true, receptionist);
-        // event.schedule(new TimeSpan(5, TimeUnit.MINUTES));
-        
+            // Simula o tempo de atendimento para a triagem
+            model.sendTraceNote("Triagem iniciada para o paciente ID: " + patient.getId());
+
+            // Agendamos o fim do atendimento após o tempo de serviço do recepcionista
+            model.releaseReceptionist(receptionist);
+
+            if(!receptionist.getWaitingQueue().isEmpty()) scheduleNextReceptionEvent();
+        } else {
+            // Caso não haja pacientes, o recepcionista fica ocioso até que haja algum para atender
+            model.sendTraceNote("Nenhum paciente na fila para triagem.");
+        }
     }
 
     /**
-     * Método para agendar o próximo evento início de triagem.
+     * Método que agenda o próximo evento de triagem.
      */
     private void scheduleNextReceptionEvent() {
         if (receptionist.getWaitingQueue().size() > 0) {
