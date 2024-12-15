@@ -45,7 +45,7 @@ public class ReceptionEndEvent extends ExternalEvent {
         receptionist.toggleStatus();
         // scheduleNextEndReceptionEvent();
 
-        // model.assignOffice(patient);
+        model.assignOffice(patient);
         model.startReception();
         
         if(!model.getQueuePatient().isEmpty()) model.startReception();

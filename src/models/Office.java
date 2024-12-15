@@ -2,6 +2,7 @@ package models;
 
 import desmoj.core.simulator.*;
 import desmoj.core.statistic.*;
+import events.PatientEndServiceEvent;
 import events.PatientStartServiceEvent;
 
 import java.util.ArrayList;
@@ -216,9 +217,9 @@ public class Office extends Entity {
         if (!bIsAvailable) throw new IllegalStateException("Consultório está ocupado e não pode iniciar uma nova consulta.");
         if (patient == null || office == null) throw new IllegalArgumentException("Os parâmetros de entrada não podem ser nulos.");
 
-        office.removePatientOnQueue();
-        office.setPatient(patient);
-        office.toggleStatus();
+        // office.getQueueWaitingPatients().remove(office.getQueueWaitingPatients().first());
+        // office.setPatient(patient);
+        // office.toggleStatus();
         
         // Registra o início do atendimento no rastreamento
         model.sendTraceNote("Consultório ID: " + this.getId() + " iniciou atendimento do paciente ID: " + patient.getId());
@@ -231,6 +232,43 @@ public class Office extends Entity {
         PatientStartServiceEvent event = new PatientStartServiceEvent(model, "Fim do Atendimento", true);
         double consultationTime = model.getTimeService(); // Tempo de consulta gerado aleatoriamente
         event.schedule(patient, office, new TimeSpan(consultationTime, TimeUnit.MINUTES));
+    }
+
+    public void endConsultation(){
+        // Verifica se há um paciente atualmente em atendimento
+        if (ptrPatient != null) {
+            // Atualiza a lista de pacientes atendidos
+            listAttendedPatients.add(ptrPatient);
+
+            // Envia um trace note sobre a liberação do consultório
+            model.sendTraceNote("Consultório " + iIndex + " liberado pelo paciente ID: " + ptrPatient.getId());
+            System.out.println("Consultório <" + iIndex + "> liberado | Paciente " + ptrPatient.getId() + " atendido.");
+
+            // Remove o paciente atual
+            ptrPatient = null;
+        } 
+
+         // Marca o consultório como disponível
+        toggleStatus();
+
+        // Verifica se há pacientes na fila de espera
+        if (!queuePatients.isEmpty()) {
+            // Remove o próximo paciente da fila
+            Patient nextPatient = queuePatients.first();
+            queuePatients.remove(nextPatient);
+
+            // Cria e agenda o evento de início de atendimento para o próximo paciente
+            PatientEndServiceEvent endServiceEvent = new PatientEndServiceEvent(model, "Início de Atendimento", true);
+            endServiceEvent.schedule(nextPatient, this, new TimeSpan(0)); // Atendimento imediato
+
+            // Envia um trace note sobre o próximo paciente
+            model.sendTraceNote("Paciente ID: " + nextPatient.getId() + " sendo movido para o atendimento no Consultório " + iIndex);
+            System.out.println("Paciente <" + nextPatient.getId() + "> sendo atendido no Consultório <" + iIndex + ">");
+        } else {
+            // Fila vazia, consultório permanece disponível
+            model.sendTraceNote("Consultório " + iIndex + " liberado e está disponível.");
+            System.out.println("Consultório <" + iIndex + "> liberado e ocioso.");
+        }
     }
 
     /**

@@ -128,6 +128,10 @@ public class Patient extends Entity {
         // if (this.instantStartTime == null) throw new IllegalStateException("O atendimento ainda nao foi iniciado.");
         this.instantEndTime = serviceEndTime;
     }
+    
+    public void setIsUrgent(){
+        this.bIsUrgent = true;
+    }
 
     // Metodos internos
     // @Override

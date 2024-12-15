@@ -42,7 +42,7 @@ public class PatientEndServiceEvent extends EventOf2Entities<Patient, Office> {
 
             office.toggleStatus();  // Consultorio agora está disponivel
             office.updateCountPatientsAttended();
-
+            // model.countTotalTimestamp
             // Pega o proximo paciente na fila do consultorio
             // Patient nextPatient = office.getQueueWaitingPatients().first();
             

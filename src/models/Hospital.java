@@ -45,6 +45,7 @@ public class Hospital extends Model {
     // Definição das distribuições de tempo
     private ContDistExponential distTimeArrival;    // Distribuição exponencial para o tempo de chegada dos pacientes
     private ContDistNormal distTimeService;         // Distribuição normal para o tempo de serviço (atendimento)
+    private ContDistUniform distUrgency;            // Para simular a probabilidade de urgência
 
     // Definição da triagem
     private double dAverageTimeServiceAttended;     // Tempo médio de serviço no atendimento
@@ -123,16 +124,17 @@ public class Hospital extends Model {
                 listOffice.add(office);
 
                 // Inicializa contadores específicos para os consultórios
-                office.setCountPatientsAttended(new Count(this, "Consultório " + (office.getIndex() + 1) + " - Pacientes Atendidos: ", true, false));
-                office.setCountOccupiedTime(new Count(this, "Consultório " + (office.getIndex() + 1) + " - Tempo Ocupado: ", true, false));
+                office.setCountPatientsAttended(new Count(this, "Consultório " + (office.getIndex() + 1) + " - Pacientes Atendidos: ", bShowInTrace, bShowInReport));
+                office.setCountOccupiedTime(new Count(this, "Consultório " + (office.getIndex() + 1) + " - Tempo Ocupado: ", bShowInTrace, bShowInReport));
             } catch(Exception exception){
                 exception.printStackTrace();
             }
         }
 
         // Inicializa as distribuições de tempo de chegada e tempo de serviço
-        this.distTimeArrival = new ContDistExponential(this, "Tempo de Chegada", 15, true, true);
-        this.distTimeService = new ContDistNormal(this, "Tempo de Serviço", 20, 5, true, true);
+        this.distTimeArrival = new ContDistExponential(this, "Tempo de Chegada", 15, bShowInTrace, bShowInReport);
+        this.distTimeService = new ContDistNormal(this, "Tempo de Serviço", 20, 5, bShowInTrace, bShowInReport);
+        this.distUrgency = new ContDistUniform(this, "Grau de Urgência", 0, 1, bShowInTrace, bShowInReport);
         this.distTimeArrival.setNonNegative(true);
         this.distTimeService.setNonNegative(true);
     }
@@ -140,7 +142,7 @@ public class Hospital extends Model {
     @Override   
     public void doInitialSchedules(){
         // Programa o evento de chegada de um paciente
-        PatientArrivalEvent event = new PatientArrivalEvent(this, "Evento gerador de cliente", true);
+        PatientArrivalEvent event = new PatientArrivalEvent(this, "Evento gerador de cliente", bShowInTrace);
         event.schedule(new TimeSpan(0.0));
     }
 
@@ -295,6 +297,9 @@ public class Hospital extends Model {
             Patient patient = queuePatient.first();
             queuePatient.remove(patient);
 
+            double urgencyValue = distUrgency.sample(); // Gera um valor entre 0 e 1
+            if(urgencyValue <= 0.3) patient.setIsUrgent(); // 30% de probabilidade para urgência
+
             receptionist.setPatient(patient);
             receptionist.toggleStatus();
 
@@ -317,23 +322,26 @@ public class Hospital extends Model {
             sendTraceNote("Não há consultórios livres.");
             return;
         } else {
-            office.getQueueWaitingPatients().insert(patient);
-            sendTraceNote("Paciente <" + patient.getId() + "> adicionado a fila do Consultório " + office.getIndex());
-        }
-        
-        // Se a recepcionista estiver disponível, agenda o atendimento do paciente
-        if(!office.getQueueWaitingPatients().isEmpty()){
-            office.startConsultation(office.getQueueWaitingPatients().first(), office);
+            if(patient.getIsUrgent()){
+                office.startConsultation(patient, office);
+            } else {
+                office.getQueueWaitingPatients().insert(patient);
+                sendTraceNote("Paciente <" + patient.getId() + "> adicionado a fila do Consultório " + office.getIndex());
+                // Se a recepcionista estiver disponível, agenda o atendimento do paciente
+                if(!office.getQueueWaitingPatients().isEmpty()){
+                    office.startConsultation(office.getQueueWaitingPatients().first(), office);
 
-            // Emite nota de rastreamento sobre o atendimento imediato
-            sendTraceNote("Paciente sendo atendido imediatamente | Fila do Consultório: " + office.getQueueWaitingPatients().size());
-            System.out.println("Paciente sendo atendido imediatamente | Fila do Consultório: " + office.getQueueWaitingPatients().size());
-        } else if(office.getQueueWaitingPatients().size() > 5) {
-            // Se a fila estiver cheia, o paciente é rejeitado
-            sendTraceNote("Fila do Consultório cheia! Paciente rejeitado.");
-            System.out.println("Fila do Consultório cheia! Paciente rejeitado.");
+                    // Emite nota de rastreamento sobre o atendimento imediato
+                    sendTraceNote("Paciente sendo atendido imediatamente | Fila do Consultório: " + office.getQueueWaitingPatients().size());
+                    System.out.println("Paciente sendo atendido imediatamente | Fila do Consultório: " + office.getQueueWaitingPatients().size());
+                } else if(office.getQueueWaitingPatients().size() > 5) {
+                    // Se a fila estiver cheia, o paciente é rejeitado
+                    sendTraceNote("Fila do Consultório cheia! Paciente rejeitado.");
+                    System.out.println("Fila do Consultório cheia! Paciente rejeitado.");
 
-            // Liberar o paciente
+                    // Liberar o paciente
+                }
+            }
         }
     }
 
