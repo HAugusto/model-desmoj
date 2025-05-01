@@ -1,0 +1,1 @@
+java -cp "bin;lib/desmoj-2.5.1e-bin.jar" App
